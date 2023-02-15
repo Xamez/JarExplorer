@@ -16,6 +16,11 @@ import java.util.zip.ZipEntry;
 
 public class JarExplorer {
 
+    private final static String JAR_FILE_PREFIX = "jar:";
+    private final static String JAR_FILE_SUFFIX = "!/";
+
+    private final static String CLASS_FILE_EXTENSION = ".class";
+
     private final URL fileURL;
     private final URL jarFileURL;
     private final JarURLConnection connection;
@@ -24,7 +29,7 @@ public class JarExplorer {
 
     public JarExplorer(File file) throws IOException {
         this.fileURL = file.toURI().toURL();
-        this.jarFileURL = new URL("jar:" + this.fileURL + "!/");
+            this.jarFileURL = new URL(JAR_FILE_PREFIX + this.fileURL + JAR_FILE_SUFFIX);
         this.connection = getConnection();
         this.jarFile = connection.getJarFile();
         this.classLoader = getClassLoader();
@@ -61,7 +66,8 @@ public class JarExplorer {
 
     public Optional<Class<?>> getClassByName(String className, boolean simpleName) {
         return getClasses().stream()
-                .filter(clazz -> simpleName ? clazz.getSimpleName().equals(className) : clazz.getName().equals(className))
+                .filter(clazz -> simpleName ?
+                        clazz.getSimpleName().equals(className) : clazz.getName().equals(className))
                 .findFirst();
     }
 
@@ -71,7 +77,8 @@ public class JarExplorer {
 
     public Optional<Class<?>> getClassByName(String packageName, String className, boolean simpleName) {
         return getClasses(packageName).stream()
-                .filter(clazz -> simpleName ? clazz.getSimpleName().equals(className) : clazz.getName().equals(className))
+                .filter(clazz -> simpleName ?
+                        clazz.getSimpleName().equals(className) : clazz.getName().equals(className))
                 .findFirst();
     }
 
@@ -81,9 +88,12 @@ public class JarExplorer {
 
     public Set<Class<?>> getClasses(String packageName) {
         return jarFile.stream()
-                .filter(jarEntry -> jarEntry.getName().startsWith(packageName) && jarEntry.getName().endsWith(".class"))
+                .filter(jarEntry -> jarEntry.getName().startsWith(packageName) &&
+                                    jarEntry.getName().endsWith(CLASS_FILE_EXTENSION))
                 .map(jarEntry -> {
-                    final String className = jarEntry.getName().replace(".class", "").replace("/", ".");
+                    final String className = jarEntry.getName()
+                                                     .replace(CLASS_FILE_EXTENSION, "")
+                                                     .replace("/", ".");
                     try {
                         return classLoader.loadClass(className);
                     } catch (ClassNotFoundException e) {
