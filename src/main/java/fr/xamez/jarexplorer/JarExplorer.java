@@ -6,6 +6,8 @@ import java.net.JarURLConnection;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
@@ -32,6 +34,10 @@ public class JarExplorer {
         this(new File(path));
     }
 
+    public JarFile getJarFile() {
+        return jarFile;
+    }
+
     private JarURLConnection getConnection() throws IOException {
         return (JarURLConnection) jarFileURL.openConnection();
     }
@@ -53,36 +59,42 @@ public class JarExplorer {
         return jarFile.stream().filter(ZipEntry::isDirectory).collect(Collectors.toList());
     }
 
-    public List<Class<?>> getClasses() {
-        return jarFile.stream()
-                .filter(jarEntry -> jarEntry.getName().endsWith(".class"))
-                .map(jarEntry -> {
-                        String className = jarEntry.getName().replace(".class", "").replace("/", ".");
-                        try {
-                            return classLoader.loadClass(className);
-                        } catch (ClassNotFoundException e) {
-                            throw new RuntimeException(e);
-                        }
-                    })
-                .collect(Collectors.toList());
+    public Optional<Class<?>> getClassByName(String className, boolean simpleName) {
+        return getClasses().stream()
+                .filter(clazz -> simpleName ? clazz.getSimpleName().equals(className) : clazz.getName().equals(className))
+                .findFirst();
     }
 
-    public List<Class<?>> getClasses(String packageName) {
+    public Optional<Class<?>> getClassByName(String className) {
+        return getClassByName(className, false);
+    }
+
+    public Optional<Class<?>> getClassByName(String packageName, String className, boolean simpleName) {
+        return getClasses(packageName).stream()
+                .filter(clazz -> simpleName ? clazz.getSimpleName().equals(className) : clazz.getName().equals(className))
+                .findFirst();
+    }
+
+    public Optional<Class<?>> getClassByName(String packageName, String className) {
+        return getClassByName(packageName, className, false);
+    }
+
+    public Set<Class<?>> getClasses(String packageName) {
         return jarFile.stream()
                 .filter(jarEntry -> jarEntry.getName().startsWith(packageName) && jarEntry.getName().endsWith(".class"))
                 .map(jarEntry -> {
-                        final String className = jarEntry.getName().replace(".class", "").replace("/", ".");
-                        try {
-                            return classLoader.loadClass(className);
-                        } catch (ClassNotFoundException e) {
-                            throw new RuntimeException(e);
-                        }
-                    })
-                .collect(Collectors.toList());
+                    final String className = jarEntry.getName().replace(".class", "").replace("/", ".");
+                    try {
+                        return classLoader.loadClass(className);
+                    } catch (ClassNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .collect(Collectors.toSet());
     }
 
-    public JarFile getJarFile() {
-        return jarFile;
+    public Set<Class<?>> getClasses() {
+        return getClasses("");
     }
 
 }

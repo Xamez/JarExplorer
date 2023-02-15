@@ -2,11 +2,10 @@ plugins {
     id 'java'
 }
 
-group 'fr.xamez'
+group 'fr.xamez.jarexplorer'
 version '1.0'
 
 repositories {
-    mavenCentral()
 }
 
 dependencies {
